@@ -59,7 +59,7 @@ namespace TransportTask.Pages
                         }
                         for (int i = 1; i < row + 2; i++)
                         {
-                            
+                             
                             for (int j = 1; j < col + 2; j++)
                             {
                                 
