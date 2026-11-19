@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using OfficeOpenXml;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -18,11 +19,13 @@ namespace TransportTask
     {
         public MainWindow()
         {
+            ExcelPackage.License.SetNonCommercialPersonal("Dmitry0752");
             InitializeComponent();
         }
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
+            
             MenuItem menuItem = sender as MenuItem;
             MainFrame.NavigationService.Navigate(new RaschetPage(menuItem.Tag.ToString()));
         }

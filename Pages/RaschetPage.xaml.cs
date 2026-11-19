@@ -1,5 +1,8 @@
-﻿using System;
+﻿using OfficeOpenXml;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -55,7 +58,16 @@ namespace TransportTask.Pages
 
         private void ButtonExsport_Click(object sender, RoutedEventArgs e)
         {
-
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel файлы (*.xlsx)|*.xlsx",
+                FileName = "Поле.xlsx"
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                ExportToExcel(dlg.FileName);
+            }
+            //ExportToExcel();
         }
 
 
@@ -231,6 +243,47 @@ namespace TransportTask.Pages
             {
                 tb.Text = "";
             }
+        }
+
+        private void ExportToExcel(string path)
+        {
+            try
+            {
+                int totalRows = row + 1;
+                int totalCols = col + 1;
+                
+                using (var p = new ExcelPackage())
+                {
+
+                    var ws = p.Workbook.Worksheets.Add("Result");
+                    for (int i = 1; i <= row + 1; i++)
+                    {
+                        for (int j = 1; j <= col + 1; j++)
+                        {
+                            if (i == row + 1 && j == col + 1)
+                            {
+                                continue;
+                            }
+                            var tb = GetCell(i, j);
+                            ws.Cells[i, j].Value = tb?.Text ?? string.Empty;
+                        }
+                    }
+                    p.SaveAs(path);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = path,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Что-то ошибка");
+            }
+        }
+        private TextBox GetCell(int i, int j)
+        {
+            return MainGrid.Children.OfType<TextBox>().First(tb => Grid.GetRow(tb) == i && Grid.GetColumn(tb) == j);
         }
     }
 }
