@@ -41,10 +41,11 @@
         </Grid>
 
         <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="2" Grid.ColumnSpan="3">
-            <Button Content="Импорт из Excel"></Button>
-            <Button Content="Экспорт в Excel"></Button>
-            <Button Content="Рассчитать"></Button>
-            <Button Content="Очистить"></Button>
+            <Button Content="Импорт из Excel" Click="ButtonImport_Click"></Button>
+            <Button Content="Экспорт в Excel" Click="ButtonExsport_Click"></Button>
+            <Button Content="Рассчитать" Click="ButtonRaschet_Click"></Button>
+            <Button Content="Сбалансировать" Click="ButtonBalanse_Click"></Button>
+            <Button Content="Очистить" Click="ButtonClear_Click"></Button>
         </StackPanel>
     </Grid>
 </Page>
