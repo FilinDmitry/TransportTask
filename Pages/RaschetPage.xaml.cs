@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Packaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -53,7 +54,15 @@ namespace TransportTask.Pages
 
         private void ButtonImport_Click(object sender, RoutedEventArgs e)
         {
-
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Excel файлы (*.xlsx)|*.xlsx",
+                FileName = "Transport.xlsx"
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                ImportFromExcel(dlg.FileName);
+            }
         }
 
         private void ButtonExsport_Click(object sender, RoutedEventArgs e)
@@ -61,13 +70,12 @@ namespace TransportTask.Pages
             var dlg = new Microsoft.Win32.SaveFileDialog
             {
                 Filter = "Excel файлы (*.xlsx)|*.xlsx",
-                FileName = "Поле.xlsx"
+                FileName = "Transport.xlsx"
             };
             if (dlg.ShowDialog() == true)
             {
                 ExportToExcel(dlg.FileName);
             }
-            //ExportToExcel();
         }
 
 
@@ -244,6 +252,59 @@ namespace TransportTask.Pages
                 tb.Text = "";
             }
         }
+        private void ImportFromExcel(string path)
+        {
+            try
+            {
+
+                using (var p = new ExcelPackage(path))
+                {
+
+                    var ws = p.Workbook.Worksheets[0];
+
+                    if (ws.Dimension == null)
+                    {
+                        MessageBox.Show("Файл пустой");
+                        return;
+                    }
+                    int newMaxRow = ws.Dimension.End.Row - 1;
+                    int newMaxCol = ws.Dimension.End.Column - 1;
+                    if (newMaxRow < 2 || newMaxCol < 2)
+                    {
+                        MessageBox.Show("Данных мало");
+                        return;
+                    }
+                    if (newMaxCol > 21 || newMaxRow > 21)
+                    {
+                        MessageBox.Show("Файл слишком большой");
+                    }
+                    TBRows.Text = newMaxRow.ToString();
+                    TBColumns.Text = newMaxCol.ToString();
+
+                    for (int i = 1; i <= newMaxRow + 1; i++)
+                    {
+                        for (int j = 1; j <= newMaxCol + 1; j++)
+                        {
+                            if (i == newMaxRow + 1 && j == newMaxCol + 1)
+                            { continue; }
+
+                            var tb = GetCell(i, j);
+                            if (tb != null)
+                                tb.Text = ws.Cells[i, j].Text ?? string.Empty;
+                        }
+                    }
+
+                   
+                    
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
+        }
+
+
 
         private void ExportToExcel(string path)
         {
