@@ -357,6 +357,7 @@ namespace TransportTask.Pages
 
         private void MinElements()
         {
+
             int sum_cols = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetRow(tb) == row + 1).Sum(tb => int.Parse(tb.Text));
             int sum_rows = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetColumn(tb) == col + 1).Sum(tb => int.Parse(tb.Text));
             if (sum_rows != sum_cols)
@@ -364,12 +365,161 @@ namespace TransportTask.Pages
                 MessageBox.Show("Матрица НЕсбалансирована");
                 return;
             }
+            
+
+            var log = new StringBuilder();
+            log.AppendLine("Опорный план (метод минимальных элементов):");
+            log.AppendLine();
+
+            int n = row;
+            int m = col;
+
+           
+            int[,] cost = new int[n, m];
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    var cell = GetCell(i, j);
+                    if (cell == null || !int.TryParse(cell.Text, out int c))
+                    {
+                        MessageBox.Show($"Проверьте тариф в ячейке ({i}, {j})");
+                        return;
+                    }
+                    cost[i - 1, j - 1] = c;
+                }
+            }
+
+
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    var cell = GetCell(i, j);
+                    if (cell != null) cell.Text = string.Empty;
+                }
+            }
+
+            int steps = 0;
+            bool[] rowDone = new bool[n];
+            bool[] colDone = new bool[m];
+            int doneRows = 0, doneCols = 0;
+            int maxSteps = n + m; // на каждом шаге вычёркивается хотя бы одна строка/столбец
+            
+            while (doneRows < n && doneCols < m && steps < maxSteps)
+            {
+                steps++;
+
+                // Ищем минимальный тариф среди невычеркнутых клеток
+                int min = int.MaxValue;
+                int mi = -1, mj = -1;
+
+                for (int i = 0; i < n; i++)
+                {
+                    if (rowDone[i]) continue;
+                    for (int j = 0; j < m; j++)
+                    {
+                        if (colDone[j]) continue;
+
+                        int c = cost[i, j];
+                        if (c < min)
+                        {
+                            min = c;
+                            mi = i;
+                            mj = j;
+                        }
+                    }
+                }
+
+                if (mi == -1) break;
+
+                // Берём текущие остатки из серых ячеек
+                var supCell = GetCell(mi + 1, col + 1);
+                var demCell = GetCell(row + 1, mj + 1);
+
+                // Если вдруг пустые — защита
+                if (supCell == null || demCell == null) break;
+
+                int s = int.Parse(supCell.Text);
+                int d = int.Parse(demCell.Text);
+
+                int amount = Math.Min(s, d);
+
+                // Пишем объём перевозки в клетку плана
+                var planCell = GetCell(mi + 1, mj + 1);
+                planCell.Text = amount.ToString();
+
+                log.AppendLine($"A{mi + 1} → B{mj + 1}: {amount} (тариф {min})");
+
+                // Обновляем остатки
+                s -= amount;
+                d -= amount;
+
+                supCell.Text = s.ToString();
+                demCell.Text = d.ToString();
+
+                // Вычёркиваем строку или столбец
+                if (s == 0)
+                {
+                    rowDone[mi] = true;
+                    doneRows++;
+                }
+                if (d == 0)
+                {
+                    colDone[mj] = true;
+                    doneCols++;
+                }
+
+            }
+
+
+            int totalCost = 0;
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    var cell = GetCell(i, j);
+                    if (cell != null && int.TryParse(cell.Text, out int amount) && amount > 0)
+                    {
+                        totalCost += amount * cost[i - 1, j - 1];
+                    }
+                }
+            }
+            for (int i = 1; i < row + 1;  i++)
+            {
+                TextBox textBox = GetCell(i, col + 1);
+                textBox.Text = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetRow(tb) == i).Sum(tb => GetInt(tb)).ToString();
+            }
+            for (int j = 1; j < col + 1; j++)
+            {
+                TextBox textBox = GetCell(row + 1, j);
+                textBox.Text = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetColumn(tb) == j).Sum(tb => GetInt(tb)).ToString();
+            }
+            log.AppendLine();
+            log.AppendLine($"Суммарная стоимость перевозок: {totalCost}");
+
+            MessageBox.Show(log.ToString(), "Решение транспортной задачи");
         }
+
+
+
+        
+        private int GetInt(TextBox tb)
+        {
+            int val = 0;
+            int.TryParse(tb.Text, out val);
+            return val;
+        }
+
 
         private void NorthWest()
         {
             try
             {
+                int[,] cost = new int[row, col];
+                for (int i = 1; i <= row; i++)
+                    for (int j = 1; j <= col; j++)
+                        cost[i - 1, j - 1] = int.Parse(GetCell(i, j).Text);
                 List<TextBox> sum_cols = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetRow(tb) == row + 1).OrderByDescending(Grid.GetColumn).ToList();
                 List<TextBox> sum_rows = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetColumn(tb) == col + 1).OrderByDescending(Grid.GetRow).ToList();
                 if (sum_rows.Sum(tb => int.Parse(tb.Text)) != sum_cols.Sum(tb => int.Parse(tb.Text)))
@@ -392,7 +542,23 @@ namespace TransportTask.Pages
                 {
                     tb.Text = string.Empty;
                 }
-                NorthWest(stack_col, stack_row);
+                var log = new StringBuilder();
+                log.AppendLine("Опорный план (метод северо-западного угла):");
+                log.AppendLine();
+                NorthWest(stack_col, stack_row, log);
+                int totalCost = 0;
+                for (int i = 1; i <= row; i++)
+                    for (int j = 1; j <= col; j++)
+                    {
+                        var tb = GetCell(i, j);
+                        if (int.TryParse(tb.Text, out int amount) && amount > 0)
+                            totalCost += amount * cost[i - 1, j - 1];
+                    }
+
+                log.AppendLine();
+                log.AppendLine($"Суммарная стоимость перевозок: {totalCost}");
+
+                MessageBox.Show(log.ToString(), "Решение (метод северо-западного угла)");
             }
             catch (Exception e)
             {
@@ -400,35 +566,34 @@ namespace TransportTask.Pages
                 MessageBox.Show("Ошибка выполнения расчетов");
             }
         }
-        private void NorthWest(Stack<int> columns, Stack<int> rows)
+        private void NorthWest(Stack<int> columns, Stack<int> rows, StringBuilder log)
         {
+
 
             if (columns.Count == 0 || rows.Count == 0)
             {
                 return;
             }
-            
-            TextBox textBox = GetCell(row + 1 - rows.Count, col + 1 - columns.Count);
+            int i = row + 1 - rows.Count;
+            int j = col + 1 - columns.Count;
+            TextBox textBox = GetCell(i, j);
             int cur_col = columns.Peek();
             int cur_row = rows.Peek();
+            int amount = Math.Min(cur_col, cur_row);
+            textBox.Text = amount.ToString();
+            log.AppendLine($"A{i} → B{j}: {amount}");
             columns.Pop();
             rows.Pop();
             if (cur_col <= cur_row)
             {
                 rows.Push(cur_row - cur_col);
-                textBox.Text = cur_col.ToString();
             }
             else if (cur_col >= cur_row)
             {
                 columns.Push(cur_col - cur_row);
-                textBox.Text = cur_row.ToString();
-            }
-            else
-            {
-                textBox.Text = cur_col.ToString();
             }
 
-            NorthWest(columns, rows);
+            NorthWest(columns, rows, log);
         }
     }
 }
