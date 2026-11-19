@@ -49,7 +49,15 @@ namespace TransportTask.Pages
 
         private void ButtonRaschet_Click(object sender, RoutedEventArgs e)
         {
-
+            switch (_mode)
+            {
+                case "СЗ":
+                    NorthWest();
+                    break;
+                case "Мин":
+                    MinElements();
+                    break;
+            }
         }
 
         private void ButtonImport_Click(object sender, RoutedEventArgs e)
@@ -181,7 +189,6 @@ namespace TransportTask.Pages
                 {
                     AddColumn(sum_rows - sum_cols);
                 }
-                //Balance();
             }
             catch
             {
@@ -202,7 +209,7 @@ namespace TransportTask.Pages
             {
                 var newTb = new TextBox();
                 newTb.PreviewTextInput += TB_PreviewTextInput;
-
+                newTb.Width = 50;
                 if (j == col + 1)
                 {
                     newTb.Text = def.ToString();
@@ -230,6 +237,7 @@ namespace TransportTask.Pages
             for (int i = 1; i < row + 2; i++)
             {
                 var newTb = new TextBox();
+                newTb.Width = 50;
                 newTb.PreviewTextInput += TB_PreviewTextInput;
                 
 
@@ -345,6 +353,82 @@ namespace TransportTask.Pages
         private TextBox GetCell(int i, int j)
         {
             return MainGrid.Children.OfType<TextBox>().First(tb => Grid.GetRow(tb) == i && Grid.GetColumn(tb) == j);
+        }
+
+        private void MinElements()
+        {
+            int sum_cols = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetRow(tb) == row + 1).Sum(tb => int.Parse(tb.Text));
+            int sum_rows = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetColumn(tb) == col + 1).Sum(tb => int.Parse(tb.Text));
+            if (sum_rows != sum_cols)
+            {
+                MessageBox.Show("Матрица НЕсбалансирована");
+                return;
+            }
+        }
+
+        private void NorthWest()
+        {
+            try
+            {
+                List<TextBox> sum_cols = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetRow(tb) == row + 1).OrderByDescending(Grid.GetColumn).ToList();
+                List<TextBox> sum_rows = MainGrid.Children.OfType<TextBox>().Where(tb => Grid.GetColumn(tb) == col + 1).OrderByDescending(Grid.GetRow).ToList();
+                if (sum_rows.Sum(tb => int.Parse(tb.Text)) != sum_cols.Sum(tb => int.Parse(tb.Text)))
+                {
+                    MessageBox.Show("Матрица НЕсбалансирована");
+                    return;
+                }
+                Stack<int> stack_col = new Stack<int>();
+                Stack<int> stack_row = new Stack<int>();
+                
+                foreach (TextBox tb in sum_cols)
+                {
+                    stack_col.Push(int.Parse(tb.Text));
+                }
+                foreach (TextBox tb in sum_rows)
+                {
+                    stack_row.Push(int.Parse(tb.Text));
+                }
+                foreach (var tb in MainGrid.Children.OfType<TextBox>())
+                {
+                    tb.Text = string.Empty;
+                }
+                NorthWest(stack_col, stack_row);
+            }
+            catch (Exception e)
+            {
+                
+                MessageBox.Show("Ошибка выполнения расчетов");
+            }
+        }
+        private void NorthWest(Stack<int> columns, Stack<int> rows)
+        {
+
+            if (columns.Count == 0 || rows.Count == 0)
+            {
+                return;
+            }
+            
+            TextBox textBox = GetCell(row + 1 - rows.Count, col + 1 - columns.Count);
+            int cur_col = columns.Peek();
+            int cur_row = rows.Peek();
+            columns.Pop();
+            rows.Pop();
+            if (cur_col <= cur_row)
+            {
+                rows.Push(cur_row - cur_col);
+                textBox.Text = cur_col.ToString();
+            }
+            else if (cur_col >= cur_row)
+            {
+                columns.Push(cur_col - cur_row);
+                textBox.Text = cur_row.ToString();
+            }
+            else
+            {
+                textBox.Text = cur_col.ToString();
+            }
+
+            NorthWest(columns, rows);
         }
     }
 }
